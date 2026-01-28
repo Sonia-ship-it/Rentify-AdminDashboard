@@ -1,14 +1,36 @@
 'use client'
 
-import { useState } from 'react'
-import { Save } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Save, Moon, Sun, Monitor } from 'lucide-react'
+import { useTheme } from 'next-themes'
+import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'sonner'
 import Sidebar from '@/components/admin/sidebar'
 import TopBar from '@/components/admin/top-bar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 export default function SettingsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
   const [settings, setSettings] = useState({
     siteName: 'Rentify',
     email: 'admin@rentify.com',
@@ -16,9 +38,15 @@ export default function SettingsPage() {
     currency: 'INR',
     timezone: 'Asia/Kolkata',
     maintenanceMode: false,
+    notifications: true,
   })
 
   const [saved, setSaved] = useState(false)
+
+  // Avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleChange = (field: string, value: string | boolean) => {
     setSettings((prev) => ({
@@ -29,8 +57,13 @@ export default function SettingsPage() {
 
   const handleSave = () => {
     setSaved(true)
+    toast.success('System settings updated successfully!', {
+      description: 'Your preferences have been saved to the local session.',
+    })
     setTimeout(() => setSaved(false), 3000)
   }
+
+  if (!mounted) return null
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -40,117 +73,219 @@ export default function SettingsPage() {
         <TopBar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
 
         <main className="flex-1 overflow-y-auto">
-          <div className="p-6 lg:p-8 max-w-4xl">
+          <div className="p-6 lg:p-8 max-w-4xl mx-auto">
             {/* Header */}
-            <div className="mb-8">
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8"
+            >
               <h1 className="text-4xl font-bold text-foreground mb-2">Settings</h1>
               <p className="text-muted-foreground">Configure your Rentify system</p>
-            </div>
+            </motion.div>
 
-            {/* Success Message */}
-            {saved && (
-              <div className="mb-6 p-4 bg-primary/20 text-primary rounded-lg text-sm font-medium">
-                Settings saved successfully!
-              </div>
-            )}
+            {/* Success Message UI (Legacy) - Keeping it as a backup UI indicator */}
+            <AnimatePresence>
+              {saved && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-6 p-4 bg-primary/20 text-primary rounded-lg text-sm font-medium flex items-center gap-2"
+                >
+                  <Save size={16} />
+                  Settings saved successfully!
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Appearance Settings */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-6"
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle>Appearance</CardTitle>
+                  <CardDescription>Customize how Rentify looks on your device.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="theme" className="flex flex-col gap-1">
+                      <span>Theme Preference</span>
+                      <span className="font-normal text-muted-foreground">Select between light, dark, or system theme.</span>
+                    </Label>
+                    <div className="flex gap-2 bg-secondary p-1 rounded-lg font-sans">
+                      <Button
+                        variant={theme === 'light' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setTheme('light')}
+                        className="gap-2"
+                      >
+                        <Sun size={16} /> Light
+                      </Button>
+                      <Button
+                        variant={theme === 'dark' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setTheme('dark')}
+                        className="gap-2"
+                      >
+                        <Moon size={16} /> Dark
+                      </Button>
+                      <Button
+                        variant={theme === 'system' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setTheme('system')}
+                        className="gap-2"
+                      >
+                        <Monitor size={16} /> System
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
             {/* General Settings */}
-            <div className="bg-card border border-border rounded-xl p-6 mb-6">
-              <h2 className="text-xl font-semibold text-foreground mb-6">General Settings</h2>
-
-              <div className="space-y-6">
-                {/* Site Name */}
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Site Name</label>
-                  <Input
-                    type="text"
-                    value={settings.siteName}
-                    onChange={(e) => handleChange('siteName', e.target.value)}
-                    className="w-full px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:ring-1 focus:ring-ring"
-                  />
-                </div>
-
-                {/* Email */}
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Admin Email</label>
-                  <Input
-                    type="email"
-                    value={settings.email}
-                    onChange={(e) => handleChange('email', e.target.value)}
-                    className="w-full px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:ring-1 focus:ring-ring"
-                  />
-                </div>
-
-                {/* Phone */}
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Admin Phone</label>
-                  <Input
-                    type="tel"
-                    value={settings.phone}
-                    onChange={(e) => handleChange('phone', e.target.value)}
-                    className="w-full px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:ring-1 focus:ring-ring"
-                  />
-                </div>
-              </div>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mb-6"
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle>General Information</CardTitle>
+                  <CardDescription>Basic details about your organization.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="siteName">Site Name</Label>
+                    <Input
+                      id="siteName"
+                      value={settings.siteName}
+                      onChange={(e) => handleChange('siteName', e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="email">Admin Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={settings.email}
+                        onChange={(e) => handleChange('email', e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="phone">Admin Phone</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={settings.phone}
+                        onChange={(e) => handleChange('phone', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
             {/* Regional Settings */}
-            <div className="bg-card border border-border rounded-xl p-6 mb-6">
-              <h2 className="text-xl font-semibold text-foreground mb-6">Regional Settings</h2>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {/* Currency */}
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Currency</label>
-                  <select
-                    value={settings.currency}
-                    onChange={(e) => handleChange('currency', e.target.value)}
-                    className="w-full px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:ring-1 focus:ring-ring"
-                  >
-                    <option value="INR">Indian Rupee (₹)</option>
-                    <option value="USD">US Dollar ($)</option>
-                    <option value="EUR">Euro (€)</option>
-                  </select>
-                </div>
-
-                {/* Timezone */}
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Timezone</label>
-                  <select
-                    value={settings.timezone}
-                    onChange={(e) => handleChange('timezone', e.target.value)}
-                    className="w-full px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:ring-1 focus:ring-ring"
-                  >
-                    <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
-                    <option value="America/New_York">America/New_York (EST)</option>
-                    <option value="Europe/London">Europe/London (GMT)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mb-6"
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle>Regional Preferences</CardTitle>
+                  <CardDescription>Set your local currency and timezone.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid gap-2">
+                    <Label htmlFor="currency">Currency</Label>
+                    <Select value={settings.currency} onValueChange={(val) => handleChange('currency', val)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Currency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="INR">Indian Rupee (₹)</SelectItem>
+                        <SelectItem value="USD">US Dollar ($)</SelectItem>
+                        <SelectItem value="EUR">Euro (€)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="timezone">Timezone</Label>
+                    <Select value={settings.timezone} onValueChange={(val) => handleChange('timezone', val)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Timezone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Asia/Kolkata">Asia/Kolkata (IST)</SelectItem>
+                        <SelectItem value="America/New_York">America/New_York (EST)</SelectItem>
+                        <SelectItem value="Europe/London">Europe/London (GMT)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
             {/* System Settings */}
-            <div className="bg-card border border-border rounded-xl p-6 mb-6">
-              <h2 className="text-xl font-semibold text-foreground mb-6">System Settings</h2>
-
-              <div>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.maintenanceMode}
-                    onChange={(e) => handleChange('maintenanceMode', e.target.checked)}
-                    className="w-4 h-4 rounded border border-border"
-                  />
-                  <span className="text-sm font-medium text-foreground">Maintenance Mode</span>
-                </label>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Enable this to prevent users from accessing the system
-                </p>
-              </div>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="mb-6"
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle>System Controls</CardTitle>
+                  <CardDescription>Manage system availability and notifications.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Maintenance Mode</Label>
+                      <p className="text-sm text-muted-foreground">Prevent users from accessing the system.</p>
+                    </div>
+                    <Switch
+                      checked={settings.maintenanceMode}
+                      onCheckedChange={(checked: boolean) => handleChange('maintenanceMode', checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Email Notifications</Label>
+                      <p className="text-sm text-muted-foreground">Receive updates about system activity.</p>
+                    </div>
+                    <Switch
+                      checked={settings.notifications}
+                      onCheckedChange={(checked: boolean) => handleChange('notifications', checked)}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
             {/* Save Button */}
-            <div className="flex gap-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="flex gap-4 justify-end mb-12"
+            >
+              <Button
+                variant="ghost"
+                className="text-foreground hover:bg-secondary"
+              >
+                Cancel
+              </Button>
               <Button
                 onClick={handleSave}
                 className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2"
@@ -158,13 +293,7 @@ export default function SettingsPage() {
                 <Save size={18} />
                 Save Changes
               </Button>
-              <Button
-                variant="ghost"
-                className="text-foreground hover:bg-secondary"
-              >
-                Cancel
-              </Button>
-            </div>
+            </motion.div>
           </div>
         </main>
       </div>
